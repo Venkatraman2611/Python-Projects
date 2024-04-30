@@ -1,13 +1,16 @@
 import pickle
 import os
 import pathlib
-
+import tkinter as tk
+from tkinter import messagebox
+from tkinter import simpledialog
+from tkinter import filedialog
 
 class Account:
     accNo = 0
     name = ''
     deposit = 0
-    type = ''
+    acc_type = ''
 
     def createAccount(self):
         account_numbers = []
@@ -19,192 +22,151 @@ class Account:
             infile.close()
 
         while True:
-            accNo = int(input("Enter the account no : "))
+            accNo = simpledialog.askinteger("Account", "Enter the account number:")
             if accNo in account_numbers:
-                print("Account number already exists. Please enter a different account number.")
+                messagebox.showinfo("Account number already exists", "Please enter a different account number.")
             else:
                 break
 
+        
         self.accNo = accNo
-        self.name = input("Enter the account holder name : ")
-        self.type = input("Ente the type of account [C/S] : ")
-        self.deposit = int(input("Enter The Initial amount(500 Above for Saving and 1000 Above for current)"))
-        print("\n\n\nAccount Created")
+        self.name = simpledialog.askstring("Account", "Enter the account holder's name:")
+        self.acc_type = simpledialog.askstring("Account", "Enter the type of account [C/S]:")
+        self.deposit = simpledialog.askinteger("Account", "Enter the initial amount:")
+        messagebox.showinfo("Account Created", f"Account for {self.name} created.")
 
-    def showAccount(self):
-        print("Account Number : ", self.accNo)
-        print("Account Holder Name : ", self.name)
-        print("Type of Account", self.type)
-        print("Balance : ", self.deposit)
-
-    
     def depositAmount(self, amount):
         self.deposit += amount
 
     def withdrawAmount(self, amount):
-        self.deposit -= amount
+        if amount > self.deposit:
+            messagebox.showerror("Error", "Insufficient funds.")
+        else:
+            self.deposit -= amount
 
-    def report(self):
-        print(self.accNo, " ", self.name, " ", self.type, " ", self.deposit)
-
-    def getAccountNo(self):
-        return self.accNo
-
-    def getAcccountHolderName(self):
-        return self.name
-
-    def getAccountType(self):
-        return self.type
-
-    def getDeposit(self):
-        return self.deposit
+    def getDetails(self):
+        return f"Account Number: {self.accNo}\nAccount Holder: {self.name}\nAccount Type: {self.acc_type}\nBalance: {self.deposit}"
 
 
-def intro():
-    print("\t\t\t\t**********************")
-    print("\t\t\t\tBANK MANAGEMENT SYSTEM")
-    print("\t\t\t\t**********************")
-
-    input("Press Enter To Contiune: ")
-
-
-def writeAccount():
-    account = Account()
-    account.createAccount()
-    writeAccountsFile(account)
-
-
-def displayAll():
-    file = pathlib.Path("accounts.data")
-    if file.exists():
-        infile = open('accounts.data', 'rb')
-        mylist = pickle.load(infile)
-        for item in mylist:
-            print(item.accNo, " ", item.name, " ", item.type, " ", item.deposit)
-        infile.close()
+def save_account(account):
+    file_path = pathlib.Path("accounts.data")
+    if file_path.exists():
+        with open("accounts.data", "rb") as infile:
+            accounts = pickle.load(infile)
     else:
-        print("No records to display")
+        accounts = []
+
+    accounts.append(account)
+
+    with open("accounts.data", "wb") as outfile:
+        pickle.dump(accounts, outfile)
 
 
-def displaySp(num):
-    file = pathlib.Path("accounts.data")
-    if file.exists():
-        infile = open('accounts.data', 'rb')
-        mylist = pickle.load(infile)
-        infile.close()
-        found = False
-        for item in mylist:
-            if item.accNo == num:
-                print("Your account Balance is = ", item.deposit)
-                found = True
+def load_accounts():
+    file_path = pathlib.Path("accounts.data")
+    if file_path.exists():
+        with open("accounts.data", "rb") as infile:
+            accounts = pickle.load(infile)
+            return accounts
     else:
-        print("No records to Search")
-    if not found:
-        print("No existing record with this number")
+        return []
 
 
-def depositAndWithdraw(num1, num2):
-    file = pathlib.Path("accounts.data")
-    if file.exists():
-        infile = open('accounts.data', 'rb')
-        mylist = pickle.load(infile)
-        infile.close()
-        os.remove('accounts.data')
-        for item in mylist:
-            if item.accNo == num1:
-                if num2 == 1:
-                    amount = int(input("Enter the amount to deposit : "))
-                    item.deposit += amount
-                    print("Your account is updted")
-                elif num2 == 2:
-                    amount = int(input("Enter the amount to withdraw : "))
-                    if amount <= item.deposit:
-                        item.deposit -= amount
-                    else:
-                        print("You cannot withdraw larger amount")
+def create_account():
+    new_account = Account()
+    new_account.createAccount()
+    save_account(new_account)
 
+
+def deposit_to_account():
+    accNo = simpledialog.askinteger("Deposit", "Enter the account number:")
+    accounts = load_accounts()
+
+    for account in accounts:
+        if account.accNo == accNo:
+            amount = simpledialog.askinteger("Deposit", "Enter the amount to deposit:")
+            account.depositAmount(amount)
+            save_all_accounts(accounts)
+            messagebox.showinfo("Success", "Deposit successful.")
+            return
+
+    messagebox.showerror("Error", "Account not found.")
+
+
+def withdraw_from_account():
+    accNo = simpledialog.askinteger("Withdraw", "Enter the account number:")
+    accounts = load_accounts()
+
+    for account in accounts:
+        if account.accNo == accNo:
+            amount = simpledialog.askinteger("Withdraw", "Enter the amount to withdraw:")
+            account.withdrawAmount(amount)
+            save_all_accounts(accounts)
+            messagebox.showinfo("Success", "Withdrawal successful.")
+            return
+
+    messagebox.showerror("Error", "Account not found.")
+
+
+def display_account():
+    accNo = simpledialog.askinteger("Display", "Enter the account number:")
+    accounts = load_accounts()
+
+    for account in accounts:
+        if account.accNo == accNo:
+            messagebox.showinfo("Account Details", account.getDetails())
+            return
+
+    messagebox.showerror("Error", "Account not found.")
+
+
+def save_all_accounts(accounts):
+    with open("accounts.data", "wb") as outfile:
+        pickle.dump(accounts, outfile)
+
+
+def list_all_accounts():
+    accounts = load_accounts()
+
+    details = "\n".join(
+        [f"{acc.accNo}: {acc.name}, {acc.acc_type}, Balance: {acc.deposit}" for acc in accounts]
+    )
+
+    if details:
+        messagebox.showinfo("All Accounts", details)
     else:
-        print("No records to Search")
-    outfile = open('newaccounts.data', 'wb')
-    pickle.dump(mylist, outfile)
-    outfile.close()
-    os.rename('newaccounts.data', 'accounts.data')
+        messagebox.showerror("Error", "No accounts found.")
 
 
-def deleteAccount(num):
-    file = pathlib.Path("accounts.data")
-    if file.exists():
-        infile = open('accounts.data', 'rb')
-        oldlist = pickle.load(infile)
-        infile.close()
-        newlist = []
-        for item in oldlist:
-            if item.accNo != num:
-                newlist.append(item)
-        os.remove('accounts.data')
-        outfile = open('newaccounts.data', 'wb')
-        pickle.dump(newlist, outfile)
-        outfile.close()
-        os.rename('newaccounts.data', 'accounts.data')
+def delete_account():
+    accNo = simpledialog.askinteger("Delete", "Enter the account number:")
+    accounts = load_accounts()
+
+    accounts = [acc for acc in accounts if acc.accNo != accNo]
+
+    save_all_accounts(accounts)
+
+    messagebox.showinfo("Success", "Account deleted.")
 
 
+# Main application
+root = tk.Tk()
+root.title("Bank Management System")
+root.geometry("300x300")
 
+menu = tk.Menu(root)
+root.config(menu=menu)
 
-def writeAccountsFile(account):
-    file = pathlib.Path("accounts.data")
-    if file.exists():
-        infile = open('accounts.data', 'rb')
-        oldlist = pickle.load(infile)
-        oldlist.append(account)
-        infile.close()
-        os.remove('accounts.data')
-    else:
-        oldlist = [account]
-    outfile = open('newaccounts.data', 'wb')
-    pickle.dump(oldlist, outfile)
-    outfile.close()
-    os.rename('newaccounts.data', 'accounts.data')
+# File menu
+file_menu = tk.Menu(menu, tearoff=0)
+menu.add_cascade(label="Options", menu=file_menu)
+file_menu.add_command(label="Create Account", command=create_account)
+file_menu.add_command(label="Deposit", command=deposit_to_account)
+file_menu.add_command(label="Withdraw", command=withdraw_from_account)
+file_menu.add_command(label="Display Account", command=display_account)
+file_menu.add_command(label="List All Accounts", command=list_all_accounts)
+file_menu.add_command(label="Delete Account", command=delete_account)
+file_menu.add_separator()
+file_menu.add_command(label="Exit", command=root.quit)
 
-
-# start of the program
-ch = ''
-num = 0
-intro()
-
-while ch != 7:
-    # system("cls");
-    print("\tMAIN MENU")
-    print("\t1. NEW ACCOUNT")
-    print("\t2. DEPOSIT AMOUNT")
-    print("\t3. WITHDRAW AMOUNT")
-    print("\t4. BALANCE ENQUIRY")
-    print("\t5. ALL ACCOUNT HOLDER LIST")
-    print("\t6. CLOSE AN ACCOUNT")
-    print("\t7. EXIT")
-    print("\tSelect Your Option (1-7) ")
-    ch = input("Enter your Choice: ")
-    # system("cls");
-
-    if ch == '1':
-        writeAccount()
-    elif ch == '2':
-        num = int(input("\tEnter The account No. : "))
-        depositAndWithdraw(num, 1)
-    elif ch == '3':
-        num = int(input("\tEnter The account No. : "))
-        depositAndWithdraw(num, 2)
-    elif ch == '4':
-        num = int(input("\tEnter The account No. : "))
-        displaySp(num)
-    elif ch == '5':
-        displayAll();
-    elif ch == '6':
-        num = int(input("\tEnter The account No. : "))
-        deleteAccount(num)
-    elif ch == '7':
-        print("\tThanks for using bank managemnt system")
-        break
-    else:
-        print("Invalid choice")
-
-    ch = input("Press Enter to Continue")
+root.mainloop()
